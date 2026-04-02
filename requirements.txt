@@ -1,0 +1,10 @@
+spacy
+networkx
+opencv-python
+Pillow
+diffusers
+transformers
+accelerate
+gradio
+torch
+torchvision

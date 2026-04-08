@@ -4,18 +4,22 @@ import random
 
 def get_default_size(name: str):
     name = name.lower()
-    if any(w in name for w in ["table", "bed", "sofa", "couch", "car"]):
-        return (250, 150)
-    elif any(w in name for w in ["chair", "person", "man", "woman", "body", "officer"]):
-        return (100, 200)
+    if any(w in name for w in ["store", "building", "cafe", "café", "wall"]):
+        return (280, 250)
+    elif any(w in name for w in ["sidewalk", "street", "road", "lot"]):
+        return (350, 100)
+    elif any(w in name for w in ["table", "bed", "sofa", "couch", "car"]):
+        return (200, 100)
+    elif any(w in name for w in ["chair", "person", "man", "woman", "officer", "suspect"]):
+        return (70, 160)
     elif any(w in name for w in ["bicycle", "bike", "motorcycle"]):
-        return (180, 120)
-    elif any(w in name for w in ["lamp", "street lamp", "light"]):
-        return (40, 200)
+        return (140, 100)
+    elif any(w in name for w in ["lamp", "street lamp", "light", "pole"]):
+        return (40, 180)
     elif any(w in name for w in ["backpack", "bag", "box"]):
-        return (70, 90)
-    elif any(w in name for w in ["cup", "coffee", "knife", "gun", "glass", "bottle"]):
-        return (40, 40)
+        return (60, 70)
+    elif any(w in name for w in ["cup", "coffee", "knife", "gun", "glass"]):
+        return (30, 30)
     else:
         return (60, 60)
 
@@ -32,6 +36,38 @@ def find_non_overlapping_position(cw, ch, canvas_size, placed_boxes, max_attempt
         if not any(check_overlap(new_box, box) for box in placed_boxes):
             return cx, cy
     return random.randint(10, max(11, canvas_size[0] - cw - 10)), random.randint(10, max(11, canvas_size[1] - ch - 10))
+
+def find_position_near(px, py, pw, ph, cw, ch, canvas_size, placed_boxes, relation=""):
+    options = []
+    
+    if "on" in relation or "top" in relation:
+        options.append((px + (pw - cw) // 2 + random.randint(-15, 15), py + random.randint(10, ph // 2)))
+        options.append((px + 10, py + 10))
+    elif "under" in relation or "below" in relation:
+        options.append((px + (pw - cw) // 2, py + ph - ch//3))
+    elif "above" in relation or "over" in relation:
+        options.append((px + (pw - cw) // 2, py - ch - 10))
+    elif "behind" in relation:
+        options.append((px + pw//4, py - ch//2))
+    else:
+        # near, beside, next to
+        options = [
+            (px + pw + 10, py + ph - ch), # Right
+            (px - cw - 10, py + ph - ch), # Left
+            (px + pw + 10, py),           # Right top
+            (px - cw - 10, py),           # Left top
+            (px + (pw - cw) // 2, py + ph + 10), # Below
+            (px + (pw - cw) // 2, py - ch - 10)  # Above
+        ]
+        
+    for cx, cy in options:
+        cx = max(0, min(canvas_size[0] - cw, cx))
+        cy = max(0, min(canvas_size[1] - ch, cy))
+        new_box = (cx, cy, cw, ch)
+        if not any(check_overlap(new_box, box) for box in placed_boxes):
+            return cx, cy
+            
+    return find_non_overlapping_position(cw, ch, canvas_size, placed_boxes)
 
 def generate_layout(graph: nx.DiGraph, canvas_size=(512, 512)) -> Image.Image:
     canvas = Image.new("RGB", canvas_size, "black")
@@ -62,21 +98,7 @@ def generate_layout(graph: nx.DiGraph, canvas_size=(512, 512)) -> Image.Image:
                     
         if placed_parent:
             px, py, pw, ph = boxes[placed_parent]
-            if "on" in relation or "top" in relation:
-                # Place inside the parent box to represent "on table" or "on floor"
-                cx = px + (pw - w) // 2 + random.randint(-15, 15)
-                cy = py + (ph - h) // 2 + random.randint(-40, 0)
-            elif "under" in relation or "below" in relation:
-                cx = px + (pw - w) // 2
-                cy = py + ph - (h // 3)
-            elif "above" in relation or "over" in relation:
-                cx = px + (pw - w) // 2
-                cy = py - h - 10
-            elif "next" in relation or "beside" in relation:
-                cx = px + pw + 10
-                cy = py + ph - h
-            else:
-                cx, cy = find_non_overlapping_position(w, h, canvas_size, list(boxes.values()))
+            cx, cy = find_position_near(px, py, pw, ph, w, h, canvas_size, list(boxes.values()), relation)
         else:
             if not boxes:
                 cx = (canvas_size[0] - w) // 2

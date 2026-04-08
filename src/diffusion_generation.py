@@ -55,7 +55,7 @@ def generate_image(pipe, prompt: str, negative_prompt: str = "") -> Image.Image:
         pooled_prompt_embeds=pooled,
         negative_prompt_embeds=negative_conditioning,
         negative_pooled_prompt_embeds=negative_pooled,
-        num_inference_steps=50,
+        num_inference_steps=1,
         generator=generator
     ).images[0]
     
